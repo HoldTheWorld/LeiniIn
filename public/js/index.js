@@ -1,11 +1,10 @@
-
 ymaps = window.ymaps
 let myMap
 ymaps.ready(init)
 function init() {
   const myMap = new ymaps.Map('map', {
     center: [55.76, 37.64],
-    zoom: 3,
+    zoom: 5,
   }, {
     searchControlProvider: 'yandex#search',
   })
@@ -14,14 +13,19 @@ function init() {
   $getcityform?.addEventListener('submit', async (ev) => {
     ev.preventDefault()
     const city = ev.target.city.value
-    document.querySelector('.lenin').style.left = '-25px'
-    document.querySelector('.lenin').style.top = '-25px'
-    document.querySelector('.lenin').style.transition = '0.3s ease'
-    setTimeout(() => {
-      document.querySelector('.lenin').style.left = '-140px'
-      document.querySelector('.lenin').style.top = '-140px'
-      document.querySelector('.lenin').style.transition = '0.3s ease'
-    }, 1000)
+
+    ymaps.geocode(city, {
+      results: 1,
+    }).then((res) => {
+      const firstGeoObject = res.geoObjects.get(0);
+      const coords = firstGeoObject.geometry.getCoordinates();
+      const bounds = firstGeoObject.properties.get('boundedBy');
+      firstGeoObject.options.set('preset', 'islands#darkBlueDotIconWithCaption');
+      firstGeoObject.properties.set('iconCaption', firstGeoObject.getAddressLine());
+      myMap.setBounds(bounds, {
+        checkZoomRange: true,
+      });
+    });
     try {
       myMap.geoObjects.removeAll()
       const firstresponse = await fetch(`https://api.opentripmap.com/0.1/ru/places/geoname?name=${city}&apikey=5ae2e3f221c38a28845f05b63b07998811e14a440ffc34e2ed2e6ba1`)
@@ -32,7 +36,6 @@ function init() {
       const newarr = []
       const newreg = /([Лл]енин)|([Ll]enin)/gi
   
-
       for (let i = 0; i < array.length; i++) {
         if (array[i].properties.name.search(newreg) != -1) {
           newarr.push(array[i].geometry.coordinates)
@@ -48,25 +51,13 @@ function init() {
           preset: 'islands#blackDotIcon',
           iconColor: '#0095b6',
         })
-        document.getElementById('destroyButton').onclick = function () {
-          // Для уничтожения используется метод destroy.
-          myMap.destroy()
-        }
         myMap.geoObjects
           .add(myPoint)
       }
       $getcityform.reset()
-      // $getcityform.remove()
-
-      // const $maindiv = document.querySelector('.maindiv').innerHTML = `
-      //       <button id="refreshbutton" action='/'>Попробовать еще раз</button>
-      //       `
-      // const $button = document.querySelector('#refreshbutton')
-      // $button.addEventListener('click', () => {
-      //   window.location = '/'
-      // })
     } catch (err) {
       console.log(err)
     }
+
   })
 }
